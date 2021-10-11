@@ -25,6 +25,10 @@ public class DataBaseController {
 
 
     public ResponseEntity<String> changeSocksCount(SocksData socksData) {
+        if (socksData.getQuantity() <= 0 || socksData.getCottonPart() < 0 || socksData.getCottonPart() > 100) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
         try {
             String task;
 
@@ -81,6 +85,9 @@ public class DataBaseController {
         int intCottonPart;
         try {
             intCottonPart = Integer.parseInt(cottonPart);
+            if (intCottonPart < 0 || intCottonPart > 100) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
         } catch (NumberFormatException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
