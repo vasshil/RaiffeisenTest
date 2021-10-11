@@ -4,9 +4,9 @@ public class SocksData {
 
     private String color;
     private int cottonPart;
-    private long quantity;
+    private int quantity;
 
-    public SocksData(String color, int cottonPart, long quantity) {
+    public SocksData(String color, int cottonPart, int quantity) {
         this.color = color;
         this.cottonPart = cottonPart;
         this.quantity = quantity;
@@ -16,24 +16,16 @@ public class SocksData {
         return color;
     }
 
-    public void setColor(String color) {
-        this.color = color;
-    }
-
     public int getCottonPart() {
         return cottonPart;
     }
 
-    public void setCottonPart(int cottonPart) {
-        this.cottonPart = cottonPart;
-    }
-
-    public long getQuantity() {
+    public int getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(long quantity) {
-        this.quantity = quantity;
+    public void setOutcome() {
+        quantity *= -1;
     }
 
 }

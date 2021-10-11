@@ -14,6 +14,7 @@ public class Application {
     public static void main(String[] args) {
         DataBaseController controller = new DataBaseController();
         SpringApplication.run(Application.class, args);
+
     }
 
 }

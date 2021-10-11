@@ -2,6 +2,7 @@ package com.app.raiffeisen.database;
 
 
 import com.app.raiffeisen.socks.SocksData;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.sql.*;
@@ -16,71 +17,108 @@ public class DataBaseController {
 
 
     public DataBaseController() {
-
         try {
-            connection = DriverManager.getConnection(urlConnect, "admin", "admin");
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
+            connection = DriverManager.getConnection(urlConnect, dataBaseLogin, dataBasePassword);
+        } catch (SQLException ignored) { }
 
     }
 
 
-    public ResponseEntity changeSocks(SocksData socksData) {
-
+    public ResponseEntity<String> changeSocksCount(SocksData socksData) {
         try {
-            Statement statement = connection.createStatement();
-            String task =
-                    "UPDATE "+ dataBaseName +
-                    " SET quantity = quantity" + socksData.getQuantity() +
-                            " where color = '" + socksData.getColor() +
-                            "' and cottonpart = " + socksData.getCottonPart() + ";";
-            ResultSet result = statement.executeQuery(task);
+            String task;
+
+            ResultSet tableOfElements = getSocksTableByParams(socksData.getColor(), "=", socksData.getCottonPart());
+
+            if (tableOfElements == null || !tableOfElements.next()) {
+                task = "insert into " + dataBaseName +
+                        "(color, cottonpart, quantity) VALUES ('" +
+                        socksData.getColor() + "', " + socksData.getCottonPart() + ", " + socksData.getQuantity() + ");";
+
+            } else {
+                task =
+                        "UPDATE " + dataBaseName +
+                        " SET quantity = quantity + " + socksData.getQuantity() +
+                        " where color = '" + socksData.getColor() +
+                        "' and cottonpart = " + socksData.getCottonPart() + ";";
+            }
+
+            sendStatement(task, false);
+
+            if (socksData.getQuantity() < 0) {
+                task = "delete from " + dataBaseName + " where quantity <= 0";
+                sendStatement(task, false);
+            }
+
+            return new ResponseEntity<>(HttpStatus.OK);
 
         } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return ResponseEntity.ok().build();
     }
 
-    public long getSocks(String color, String operation, String cottonPart) {
-
+    public ResponseEntity<String> countSocks(String color, String operation, String cottonPart) {
         long sum = 0;
 
         switch (operation) {
             case "moreThan":
                 operation = ">";
-
                 break;
+
             case "lessThan":
                 operation = "<";
-
                 break;
+
             case "equal":
                 operation = "=";
-
                 break;
+            default:
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
         }
+
+        int intCottonPart;
+        try {
+            intCottonPart = Integer.parseInt(cottonPart);
+        } catch (NumberFormatException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
 
         try {
-            Statement statement = connection.createStatement();
-            String task =
-                    "select * from " + dataBaseName +
-                            " where color = '" + color + "' and cottonpart " + operation + " " + cottonPart;
+            ResultSet result = getSocksTableByParams(color, operation, intCottonPart);
+            if (result != null) {
+                while (result.next()) {
+                    long quantity = result.getLong(3);
+                    sum += quantity;
 
-            ResultSet result = statement.executeQuery(task);
-            while (result.next()) {
-                long quantity = result.getLong(4);
-                sum += quantity;
+                }
             }
-
         } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return sum;
+        return new ResponseEntity<>(sum + "", HttpStatus.OK);
     }
+
+    private ResultSet getSocksTableByParams(String color, String operation, int cottonPart) throws SQLException {
+        String task =
+                        "select * from " + dataBaseName +
+                        " where color = '" + color +
+                        "' and cottonpart " + operation + " " + cottonPart;
+
+
+        return (ResultSet) sendStatement(task, true);
+    }
+
+
+    private Object sendStatement(String task, boolean isSelecting) throws SQLException {
+        Statement statement = connection.createStatement();
+        return (isSelecting ? statement.executeQuery(task) : statement.executeUpdate(task));
+
+    }
+
 
 
     public static DataBaseController getInstance() {
